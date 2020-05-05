@@ -1,0 +1,1 @@
+com.techsole8.marocchat

@@ -1,0 +1,98 @@
+/* 
+Copyright Paul James Mutton, 2001-2007, http://www.jibble.org/
+
+This file is part of PircBot.
+
+This software is dual-licensed, allowing you to choose between the GNU
+General Public License (GPL) and the www.jibble.org Commercial License.
+Since the GPL may be too restrictive for use in a proprietary application,
+a commercial license is also provided. Full license information can be
+found at http://www.jibble.org/licenses/
+
+*/
+
+
+package org.yaaic.protocol;
+
+import java.util.Vector;
+
+/**
+ * Queue is a definition of a data structure that may
+ * act as a queue - that is, data can be added to one end of the
+ * queue and data can be requested from the head end of the queue.
+ * This class is thread safe for multiple producers and a single
+ * consumer.  The next() method will block until there is data in
+ * the queue.
+ *
+ * This has now been modified so that it is compatible with
+ * the earlier JDK1.1 in order to be suitable for running on
+ * mobile appliances.  This means replacing the LinkedList with
+ * a Vector, which is hardly ideal, but this Queue is typically
+ * only polled every second before dispatching messages.
+ * 
+ * @author  Paul James Mutton,
+ *          <a href="http://www.jibble.org/">http://www.jibble.org/</a>
+ * @version    1.4.6 (Build time: Wed Apr 11 19:20:59 2007)
+ */
+public class Queue {
+    /**
+     * Adds an Object to the end of the Queue.
+     *
+     * @param o The Object to be added to the Queue.
+     */
+    public void add(Object o) {
+        synchronized(_queue) {
+            _queue.addElement(o);
+            _queue.notify();
+        }
+    }
+
+    /**
+     * Returns the Object at the front of the Queue.  This
+     * Object is then removed from the Queue.  If the Queue
+     * is empty, then this method shall block until there
+     * is an Object in the Queue to return.
+     *
+     * @return The next item from the front of the queue.
+     */
+    public Object next() {
+        
+        Object o;
+        
+        // Block if the Queue is empty.
+        synchronized(_queue) {
+            if (_queue.size() == 0) {
+                try {
+                    _queue.wait();
+                }
+                catch (InterruptedException e) {
+                    return null;
+                }
+            }
+        
+            // Return the Object.
+            try {
+                o = _queue.firstElement();
+                _queue.removeElementAt(0);
+            }
+            catch (ArrayIndexOutOfBoundsException e) {
+                throw new InternalError("Race hazard in Queue object.");
+            }
+        }
+
+        return o;
+    }
+
+    /**
+     * Returns the size of the Queue.
+     *
+     * @return The current size of the queue.
+     */
+    public int size() {
+        return _queue.size();
+    }
+    
+
+    private final Vector<Object> _queue = new Vector<Object>();
+    
+}
